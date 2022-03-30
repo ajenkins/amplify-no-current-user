@@ -1,11 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import Amplify, { Auth } from 'aws-amplify';
+import { withAuthenticator } from 'aws-amplify-react-native'
 import awsconfig from './aws-exports';
 
-Amplify.configure(awsconfig);
+Amplify.configure({ ...awsconfig, Analytics: { disabled: true } });
 
-export default function App() {
+function App() {
+  Auth.currentSession().then((session) => console.log(session));
   return (
     <View style={styles.container}>
       <Text>Open up App.js to start working on your app!</Text>
@@ -22,3 +24,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+export default withAuthenticator(App, { usernameAttributes: 'phone_number' });
