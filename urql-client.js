@@ -7,23 +7,29 @@ import {
 import { authExchange } from "@urql/exchange-auth";
 import { makeOperation } from "@urql/core";
 import { Auth } from "aws-amplify";
+import { Buffer } from "buffer";
 
 const url = "https://crystal-dating.hasura.app/v1/graphql";
 
 const getAuth = async ({ authState }) => {
-  console.log("getAuth");
   if (!authState) {
-    const session = await Auth.currentAuthenticatedUser();
+    let session;
+    try {
+      session = await Auth.currentSession();
+    } catch {
+      // The promise will be rejected if the user isn't signed in yet
+      return null;
+    }
     if (session) {
-      console.log("party time", session);
       return {
         token: session.getIdToken().getJwtToken(),
       };
     }
-    Auth.signOut();
     return null;
   }
 
+  // This is where auth has gone wrong and we need to clean up and redirect to a login page
+  Auth.signOut();
   return null;
 };
 
@@ -45,6 +51,7 @@ const addAuthToOperation = ({ authState, operation }) => {
         ...fetchOptions.headers,
         Authorization: `Bearer ${authState.token}`,
       },
+      credentials: "include",
     },
   });
 };
@@ -53,12 +60,13 @@ const didAuthError = ({ error }) =>
   error.graphQLErrors.some((e) => e.message === "Unauthorized");
 
 const willAuthError = ({ authState }) => {
-  console.log(authState);
+  if (!authState) return true;
   try {
     const [, payload] = authState.token.split(".");
     const { exp } = JSON.parse(Buffer.from(payload, "base64"));
     return exp * 1000 < Date.now();
   } catch (e) {
+    console.log(e);
     return true;
   }
 };
