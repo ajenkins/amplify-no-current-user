@@ -66,7 +66,6 @@ const willAuthError = ({ authState }) => {
     const { exp } = JSON.parse(Buffer.from(payload, "base64"));
     return exp * 1000 < Date.now();
   } catch (e) {
-    console.log(e);
     return true;
   }
 };
